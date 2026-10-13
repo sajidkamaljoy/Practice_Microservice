@@ -1,14 +1,17 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
-using System.Text;
 
 namespace JwtConfiguration
 {
     public static class CustomJwtAuthExtension
     {
-        public static void AddCustomJwtAuth(this IServiceCollection services)
+        public static void AddCustomJwtAuth(this IServiceCollection services, IConfiguration configuration)
         {
+            // Throws at startup if Jwt:Key is not configured, instead of failing on the first request.
+            var settings = JwtSettings.FromConfiguration(configuration);
+
             services.AddAuthentication(o =>
             {
                 o.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -20,7 +23,7 @@ namespace JwtConfiguration
                 o.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(JwtTokenHandler.JWT_SECRET)),
+                    IssuerSigningKey = new SymmetricSecurityKey(settings.KeyBytes),
                     ValidateIssuer = false,
                     ValidateAudience = false
                 };

@@ -1,23 +1,20 @@
-﻿using JwtConfiguration.Models;
+using JwtConfiguration.Models;
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace JwtConfiguration
 {
     public class JwtTokenHandler
     {
-        public const string JWT_SECRET = "saDSdsDSd2DSDSdsds2dDSdsasd23213jk2h31k23hk1j2h3k12asdsds123";
-        private const int JWT_TOKEN_VALIDITY_MINS = 20;
-        private readonly List<UserAccount> _users;
+        private readonly JwtSettings _settings;
 
-        public JwtTokenHandler()
+        public JwtTokenHandler(IConfiguration configuration)
         {
-            _users = [
-                new UserAccount { Username = "admin", Password = "admin", Role = "Admin" },
-                new UserAccount { Username = "user", Password = "user", Role = "User" }
-            ];
+            _settings = JwtSettings.FromConfiguration(configuration);
         }
 
         public AuthenticationResponse? GenerateJwtToken(AuthenticationRequest request)
@@ -27,14 +24,15 @@ namespace JwtConfiguration
                 return null;
             }
 
-            var user = _users.Where(u => u.Username == request.Username && u.Password == request.Password).FirstOrDefault();
+            var user = _settings.Users.FirstOrDefault(u =>
+                string.Equals(u.Username, request.Username, StringComparison.Ordinal) &&
+                SecureEquals(u.Password, request.Password));
             if(user == null)
             {
                 return null;
             }
 
-            var tokenExpiryTimeStamp = DateTime.UtcNow.AddMinutes(JWT_TOKEN_VALIDITY_MINS);
-            var tokenKey = Encoding.ASCII.GetBytes(JWT_SECRET);
+            var tokenExpiryTimeStamp = DateTime.UtcNow.AddMinutes(_settings.ValidityMinutes);
             var claimsIdentity = new ClaimsIdentity(new List<Claim>
             {
                 new(JwtRegisteredClaimNames.Sub, request.Username),
@@ -42,7 +40,7 @@ namespace JwtConfiguration
             });
 
             var signingCredentials = new SigningCredentials(
-                new SymmetricSecurityKey(tokenKey),
+                new SymmetricSecurityKey(_settings.KeyBytes),
                 SecurityAlgorithms.HmacSha256Signature
             );
 
@@ -64,5 +62,11 @@ namespace JwtConfiguration
                 ExpiresIn = (int)tokenExpiryTimeStamp.Subtract(DateTime.UtcNow).TotalSeconds
             };
         }
+
+        // Constant-time comparison so response timing does not reveal how much of a password matched.
+        private static bool SecureEquals(string expected, string actual) =>
+            CryptographicOperations.FixedTimeEquals(
+                Encoding.UTF8.GetBytes(expected),
+                Encoding.UTF8.GetBytes(actual));
     }
 }

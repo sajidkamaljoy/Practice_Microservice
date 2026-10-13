@@ -16,7 +16,7 @@ builder.Services.AddScoped<ProductQuery>();
 builder.Services.AddScoped<ProductSchema>();
 
 builder.Services.AddControllers();
-builder.Services.AddCustomJwtAuth();
+builder.Services.AddCustomJwtAuth(builder.Configuration);
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());

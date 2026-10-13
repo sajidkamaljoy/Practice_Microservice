@@ -12,6 +12,9 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+// Fail fast at startup if the JWT settings are missing, instead of on the first login request.
+app.Services.GetRequiredService<JwtTokenHandler>();
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {

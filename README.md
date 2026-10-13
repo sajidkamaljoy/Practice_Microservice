@@ -41,11 +41,39 @@ Client ──► ApiGateway (Ocelot) ──┬─► AuthWebApi        POST /api
 1. Install the .NET 8 SDK and a SQL Server instance (or LocalDB).
 2. Update `ConnectionStrings:DefaultConnection` in the `appsettings.json` of the data-backed project to point at your SQL Server.
 3. Apply migrations: `dotnet ef database update` from the project that owns the `AppDbContext`.
-4. Open `Product.sln` in Visual Studio, set the services you need as startup projects (or run each with `dotnet run`), and start `ApiGateway`.
-5. Request a token from `/gateway/accounts/Login`, then pass it as `Authorization: Bearer <token>` on protected routes.
+4. Configure the JWT settings (see [Configuration](#configuration) below). The services will not start without a signing key.
+5. Open `Product.sln` in Visual Studio, set the services you need as startup projects (or run each with `dotnet run`), and start `ApiGateway`.
+6. Request a token from `/gateway/accounts/Login`, then pass it as `Authorization: Bearer <token>` on protected routes.
 
 The ports in `ocelot.json` must match the ports each service listens on. Check each project's `Properties/launchSettings.json`, because they may need adjusting on your machine.
 
+## Configuration
+
+Secrets are not stored in the repository. Every service reads them from configuration, so use .NET user-secrets for local development, or environment variables in Docker and production.
+
+| Setting | Used by | Notes |
+|---|---|---|
+| `Jwt:Key` | `AuthWebApi`, `ApiGateway`, `Product` | Signing key, at least 32 characters. **It must be the same in all three services.** |
+| `Jwt:ValidityMinutes` | `AuthWebApi` | Optional. Token lifetime, 20 by default. |
+| `Jwt:Users:0:Username`, `Password`, `Role` | `AuthWebApi` | Demo accounts for the login endpoint. Add more with index `1`, `2` and so on. |
+
+Local development with user-secrets (run from the repo root, using your own values):
+
+```bash
+for p in AuthWebApi ApiGateway Product; do
+  dotnet user-secrets init --project $p
+  dotnet user-secrets set "Jwt:Key" "<a long random string>" --project $p
+done
+
+dotnet user-secrets set "Jwt:Users:0:Username" "<admin username>" --project AuthWebApi
+dotnet user-secrets set "Jwt:Users:0:Password" "<admin password>" --project AuthWebApi
+dotnet user-secrets set "Jwt:Users:0:Role"     "Admin"            --project AuthWebApi
+```
+
+Generate a key with `openssl rand -base64 48`, or `[Convert]::ToBase64String((1..48 | % { Get-Random -Max 256 }))` in PowerShell.
+
+With environment variables, use double underscores instead of colons, for example `Jwt__Key` and `Jwt__Users__0__Username`.
+
 ## Notes
 
-- This is a learning project. User accounts for the login endpoint are hard-coded in `JwtConfiguration/JwtTokenHandler.cs` and signing settings live in source. Move them to configuration or a secret store before reusing any of this.
+- This is a learning project. The login endpoint compares plain passwords from configuration. For a real application, use ASP.NET Core Identity or an external identity provider with hashed passwords.
