@@ -1,6 +1,8 @@
 # Practice_Microservice
 [![CI](https://github.com/sajidkamaljoy/Practice_Microservice/actions/workflows/ci.yml/badge.svg)](https://github.com/sajidkamaljoy/Practice_Microservice/actions/workflows/ci.yml)
 
+> **Note:** this project was originally developed under my earlier GitHub account, [sajid43677/Practice_Microservice](https://github.com/sajid43677/Practice_Microservice), and was moved to this account in October 2026.
+
 A hands-on .NET 8 microservices playground: an API gateway, JWT authentication, a product service exposed over REST, GraphQL and gRPC, and an order service that talks to it.
 
 ## Architecture
